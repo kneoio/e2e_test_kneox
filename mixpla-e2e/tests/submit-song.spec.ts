@@ -1,25 +1,42 @@
+// Playwright test for song submission
+// Install with: npm install @playwright/test
+// Run with: npx playwright test
+
 import { test, expect } from '@playwright/test';
 
 test('user can submit a song with audio file and agreement', async ({ page }) => {
   await page.goto('/sunonation/submit-song');
+  await page.waitForLoadState('domcontentloaded');
+
+  const gdprAccept = page.locator('.gdpr-banner button:has-text("Accept")');
+  if (await gdprAccept.count()) {
+    await gdprAccept.first().click();
+  } else {
+    const anyGdprButton = page.locator('.gdpr-banner button');
+    if (await anyGdprButton.count()) {
+      await anyGdprButton.first().click();
+    }
+  }
 
   await page.getByLabel('Email').fill('test-user@example.com');
   await page.getByRole('button', { name: /send code/i }).click();
-
-  // Use fixed dummy confirmation code that backend accepts
-  await page.getByLabel(/confirmation code/i).fill('faffafa456');
-
-  await page.getByLabel(/audio file/i).setInputFiles('fixtures/test-audio.wav');
-
+  await page.getByLabel('Confirmation Code').fill('faffafa456');
+  await page.locator('input[type="file"]').setInputFiles('fixtures/test-audio.wav');
   await page.getByLabel('Artist').fill('Test Artist');
   await page.getByLabel('Title').fill('Test Title');
-
+  await page.getByLabel('Genres').click();
+  const genreLabel = page.getByText(/Aggrotech|Ambient|Electronic/i).first();
+  await genreLabel.waitFor();
+  await genreLabel.click();
   await page.getByLabel(/music upload agreement/i).check();
-  // Optional: second checkbox
-  // await page.getByLabel(/share this song with other radio stations/i).check();
+
+  const submitPromise = page.waitForResponse((response) => {
+    return response.url().includes('/radio/') && response.url().includes('/submissions') && response.request().method() === 'POST';
+  });
 
   await page.getByRole('button', { name: /submit/i }).click();
+  await submitPromise;
 
-  // Assert success indication; use tolerant regex
-  await expect(page.getByText(/thank you|success|submitted/i)).toBeVisible();
+  const successToast = page.getByRole('alert').filter({ hasText: /thanks! your song was submitted\./i });
+  await expect(successToast).toBeVisible();
 });

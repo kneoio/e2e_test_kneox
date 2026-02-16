@@ -1,0 +1,101 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e6]:
+  - generic [ref=e7]:
+    - button "Back" [ref=e8] [cursor=pointer]:
+      - generic [ref=e9]:
+        - img [ref=e10]:
+          - img [ref=e11]
+        - text: Back
+    - img [ref=e15]:
+      - img [ref=e16]
+  - generic [ref=e25]:
+    - generic [ref=e26]:
+      - generic [ref=e28]:
+        - generic [ref=e30]:
+          - generic [ref=e32]: Email
+          - generic [ref=e34]:
+            - textbox "Email" [ref=e38]:
+              - /placeholder: ""
+              - text: test-user@example.com
+            - button "Resend code" [ref=e39] [cursor=pointer]:
+              - generic [ref=e40]: Resend code
+        - generic [ref=e43]:
+          - generic [ref=e45]: Confirmation Code
+          - textbox "Confirmation Code" [ref=e50]:
+            - /placeholder: ""
+            - text: faffafa456
+      - generic [ref=e52]:
+        - generic [ref=e53]:
+          - generic [ref=e55]: Audio File (mp3, wav)
+          - generic [ref=e57]:
+            - button "Choose File" [ref=e59] [cursor=pointer]:
+              - generic [ref=e60]: Choose File
+            - generic [ref=e63]:
+              - img [ref=e66]
+              - generic [ref=e71]: test-audio.wav
+              - button [ref=e73] [cursor=pointer]:
+                - img [ref=e76]
+        - alert [ref=e82]:
+          - button "close" [ref=e83] [cursor=pointer]:
+            - img [ref=e85]
+          - img [ref=e91]
+          - generic [ref=e96]: "Uploaded: test-audio.wav"
+      - generic [ref=e98]:
+        - generic [ref=e100]:
+          - generic [ref=e102]: Artist
+          - textbox "Artist" [ref=e107]:
+            - /placeholder: ""
+            - text: Test Artist
+        - generic [ref=e110]:
+          - generic [ref=e112]: Title
+          - textbox "Title" [ref=e117]:
+            - /placeholder: ""
+            - text: Test Title
+        - generic [ref=e120]:
+          - generic [ref=e122]: Album (optional)
+          - textbox "Album" [ref=e127]:
+            - /placeholder: ""
+        - generic [ref=e130]:
+          - generic [ref=e132]: Genres
+          - generic "Genres" [ref=e134]:
+            - generic [ref=e136] [cursor=pointer]:
+              - generic [ref=e138]:
+                - generic [ref=e139]: Aggrotech
+                - button "close" [ref=e140]:
+                  - img [ref=e142]
+              - img "loading" [ref=e146]:
+                - img [ref=e151]
+        - generic [ref=e155]:
+          - generic [ref=e157]: Labels (optional)
+          - generic "Labels" [ref=e159]:
+            - img "loading" [ref=e162] [cursor=pointer]:
+              - img [ref=e167]
+      - generic [ref=e171]:
+        - generic [ref=e173]: Description (optional)
+        - textbox "Description" [ref=e177]:
+          - /placeholder: ""
+    - generic [ref=e182] [cursor=pointer]:
+      - img [ref=e185]
+      - strong [ref=e187]: Submission Policy
+    - generic [ref=e191] [cursor=pointer]:
+      - img [ref=e194]
+      - strong [ref=e196]: Music Upload Agreement
+    - generic [ref=e199]:
+      - checkbox "I agree with the Music Upload Agreement (expand above to read the full agreement) and confirm my right to upload this music" [checked] [ref=e200] [cursor=pointer]:
+        - img [ref=e204]
+        - generic [ref=e207]: I agree with the Music Upload Agreement (expand above to read the full agreement) and confirm my right to upload this music
+      - checkbox "I agree that Mixpla can share this song with other radio stations" [ref=e208] [cursor=pointer]:
+        - img [ref=e212]
+        - generic [ref=e215]: I agree that Mixpla can share this song with other radio stations
+    - button "Reset" [ref=e217] [cursor=pointer]:
+      - generic [ref=e218]: Reset
+    - button "Submit" [ref=e219] [cursor=pointer]:
+      - generic [ref=e220]: Submit
+    - alert [ref=e221]:
+      - button "close" [ref=e222] [cursor=pointer]:
+        - img [ref=e224]
+      - img [ref=e230]
+      - generic [ref=e235]: Request failed with status code 500
+```
