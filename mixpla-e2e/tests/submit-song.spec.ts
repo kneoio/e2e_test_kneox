@@ -1,11 +1,12 @@
-// Playwright test for song submission
-// Install with: npm install @playwright/test dotenv
-// Run with: npx playwright test
-
 import { test, expect } from '@playwright/test';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
+
+const confirmationCode = process.env.CONFIRMATION_CODE;
+if (!confirmationCode) {
+  throw new Error('CONFIRMATION_CODE env var must be set before running submit-song test');
+}
 
 test('user can submit a song with audio file and agreement', async ({ page }) => {
   await page.goto('/sunonation/submit-song');
@@ -23,7 +24,7 @@ test('user can submit a song with audio file and agreement', async ({ page }) =>
 
   await page.getByLabel('Email').fill('test-user@example.com');
   await page.getByRole('button', { name: /send code/i }).click();
-  await page.getByLabel('Confirmation Code').fill(process.env.CONFIRMATION_CODE);
+  await page.getByLabel('Confirmation Code').fill(confirmationCode);
   await page.locator('input[type="file"]').setInputFiles('fixtures/test-audio.wav');
   await page.getByLabel('Artist').fill('Test Artist');
   await page.getByLabel('Title').fill('Test Title');
