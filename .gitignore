@@ -2,3 +2,4 @@ mixpla-e2e/.env
 node_modules
 .idea
 .vscode
+/mixpla-e2e/playwright-report/
