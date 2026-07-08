@@ -1,16 +1,16 @@
 # Mixpla E2E Tests
 
-Black-box Playwright E2E tests for Mixpla submit-song flow.
+Black-box Playwright E2E tests for Mixpla track submission flow.
 
 ## Purpose
 
-This project provides end-to-end testing for the Mixpla song submission page (`/sunonation/submit-song`). It treats the Mixpla site as a pure black box over HTTP and simulates a real user submitting a song with audio file and agreement acceptance.
+This project provides end-to-end testing for the Mixpla track submission page (`/submission`). It treats the Mixpla site as a pure black box over HTTP and simulates a real user submitting a track through the 3-step wizard (email verification, track details + upload, success).
 
 ## Prerequisites
 
 - Target Mixpla environment must be live and accessible
 - Node.js installed
-- Test backend configured to accept confirmation code `faffafa456` for email `test-user@example.com`
+- Backend (datanest) must have the QA OTP bypass enabled: email `qa-test@mixpla.io` with code `424242` always verifies without sending a real email (see `OtpService.TEST_BYPASS_EMAIL` / `TEST_BYPASS_CODE`)
 
 ## Setup
 
@@ -47,13 +47,13 @@ npx playwright test --ui
 
 ## Test Coverage
 
-The test `user can submit a song with audio file and agreement` verifies:
-- Email input and "Send code" functionality
-- Confirmation code entry (using fixed test code)
+The test `user can submit a track with audio file and agreement` verifies:
+- Email input and "Send Code" functionality
+- Confirmation code entry (using the QA OTP bypass code)
+- Artist name, genre, and station selection
 - Audio file upload
-- Required metadata (Artist, Title)
-- Music Upload Agreement checkbox acceptance
-- Form submission and success confirmation
+- Submission terms agreement checkbox acceptance
+- Form submission (`POST /public/songs/chunk`) and success step ("Thank you!")
 
 ## Configuration
 
