@@ -14,9 +14,17 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { 
+      use: {
         ...require('@playwright/test').devices['Desktop Chrome'],
         headless: true,
+      },
+    },
+    {
+      name: 'chromium-debug',
+      use: {
+        ...require('@playwright/test').devices['Desktop Chrome'],
+        headless: false,
+        launchOptions: { slowMo: 500 },
       },
     },
   ],
