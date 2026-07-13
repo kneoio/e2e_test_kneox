@@ -29,7 +29,12 @@ npx playwright install
 export BASE_URL=https://mixpla.io   # or another environment URL
 ```
 
-4. Add a test audio file:
+4. Add a `.env` file (see `.env.example`) with the Postgres connection used for cleanup:
+```
+DATABASE_URL=postgres://user:password@host:5432/mixpla
+```
+
+5. Add a test audio file:
    - Place a small audio file (WAV or MP3) at `fixtures/test-audio.wav`
    - This file is used for testing the file upload functionality
 
@@ -54,6 +59,7 @@ The test `user can submit a track with audio file and agreement` verifies:
 - Audio file upload
 - Submission terms agreement checkbox acceptance
 - Form submission (`POST /public/songs/chunk`) and success step ("Thank you!")
+- After each test, the submitted sound fragment (matched by title `test-audio.wav`) and its related upload agreement are deleted from the database via `tests/utils/db-cleanup.ts`
 
 ## Configuration
 

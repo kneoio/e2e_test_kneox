@@ -6,7 +6,7 @@ const BRAND_NAME = `E2E Test Brand ${Date.now()}`;
 
 async function login(page: Page) {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Access Mixdeck' }).click();
+  await page.locator('#creators').getByRole('button', { name: 'Access Mixdeck' }).click();
 
   await page.getByPlaceholder('Enter your username or email').fill(MIXDECK_USER);
   await page.getByPlaceholder('Enter your password').fill(MIXDECK_PWD);

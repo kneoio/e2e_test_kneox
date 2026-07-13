@@ -3,4 +3,5 @@ node_modules
 .idea
 .vscode
 /mixpla-e2e/playwright-report/
+.env
 /mixpla-e2e/test-results/

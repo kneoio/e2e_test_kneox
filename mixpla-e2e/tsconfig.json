@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ES2020",
     "module": "ESNext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -11,6 +11,6 @@
     "rootDir": "./",
     "types": ["node"]
   },
-  "include": ["tests/**/*"],
+  "include": ["tests/**/*", "playwright.config.ts"],
   "exclude": ["node_modules", "dist"]
 }
