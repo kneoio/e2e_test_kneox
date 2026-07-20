@@ -72,6 +72,9 @@ test('user can submit a track with audio file and agreement', async ({ page }) =
 
   submittedFragmentId = await waitForSoundFragmentIdByTitle(TEST_TRACK_TITLE);
 
-  await expect(page.getByText('Thank you!')).toBeVisible();
+  // The upload chunk response resolves before the frontend finishes
+  // processing and switching to the success view, so give it more room
+  // than the default 5s timeout.
+  await expect(page.getByText('Thank you!')).toBeVisible({ timeout: 20000 });
   await expect(page.getByText('Your track has been submitted successfully.')).toBeVisible();
 });
