@@ -5,3 +5,4 @@ node_modules
 /mixpla-e2e/playwright-report/
 .env
 /mixpla-e2e/test-results/
+/CLAUDE.md
