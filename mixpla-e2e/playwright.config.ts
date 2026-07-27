@@ -13,7 +13,9 @@ export default defineConfig({
   reporter: 'html',
   use: {
     baseURL: process.env.BASE_URL || 'https://mixpla.io',
-    trace: 'on-first-retry',
+    trace: 'on',
+    video: { mode: 'on', size: { width: 1920, height: 1080 } },
+    viewport: { width: 1920, height: 1080 },
   },
   projects: [
     {
@@ -28,6 +30,7 @@ export default defineConfig({
       use: {
         ...require('@playwright/test').devices['Desktop Chrome'],
         headless: false,
+        viewport: { width: 1920, height: 1080 },
         launchOptions: { slowMo: 500 },
       },
     },

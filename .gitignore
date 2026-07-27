@@ -6,3 +6,36 @@ node_modules
 .env
 /mixpla-e2e/test-results/
 /CLAUDE.md
+/mixpla-e2e
+
+# deps
+node_modules/
+.npm
+.pnpm-store/
+
+# env
+.env.*
+!.env.example
+
+# playwright artifacts
+playwright-report/
+test-results/
+blob-report/
+.playwright/
+.cache/
+
+# recast artifacts
+*.mp4
+*.webm
+.recast-cache/
+
+# editors / os
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.swp
+
+# logs
+*.log
+npm-debug.log*
