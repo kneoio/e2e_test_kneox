@@ -1,39 +1,27 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
-import { waitForSoundFragmentIdByTitle, deleteSoundFragmentById, closeDbPool } from './utils/db-cleanup';
 
-// QA-only bypass pair from OtpService (datanest): this exact email+code always
-// verifies without a real email being sent. See com.semantyca.datanest.service.OtpService.
-const QA_EMAIL = 'qa-test@mixpla.io';
-const QA_CODE = '424242';
-const TEST_TRACK_TITLE = 'test-audio.wav';
+// The submission flow authenticates the submitter with an email + one-time
+// code. These are taken from MIXDECK_USER / MIXDECK_PWD (the QA bypass pair
+// exposed via OtpService.TEST_BYPASS_EMAIL / TEST_BYPASS_CODE in datanest),
+// falling back to the documented public bypass values when unset.
+const SUBMIT_EMAIL = process.env.MIXDECK_USER || 'qa-test@mixpla.io';
+const SUBMIT_CODE = process.env.MIXDECK_PWD || '424242';
+const STATION = 'Sunonation';
 
 function fieldRow(page: Page, labelText: string): Locator {
   return page.locator('.field-row').filter({ has: page.getByText(labelText, { exact: true }) });
 }
-
-let submittedFragmentId: string | undefined;
-
-test.afterEach(async () => {
-  if (submittedFragmentId) {
-    await deleteSoundFragmentById(submittedFragmentId);
-    submittedFragmentId = undefined;
-  }
-});
-
-test.afterAll(async () => {
-  await closeDbPool();
-});
 
 test('user can submit a track with audio file and agreement', async ({ page }) => {
   await page.goto('/submission');
   await page.waitForLoadState('domcontentloaded');
 
   // Step 1: email + confirmation code
-  await fieldRow(page, 'your@email.com').locator('input').fill(QA_EMAIL);
+  await fieldRow(page, 'your@email.com').locator('input').fill(SUBMIT_EMAIL);
   await page.getByRole('button', { name: /send code/i }).click();
   await expect(page.getByText('Code sent — check your inbox.')).toBeVisible();
 
-  await fieldRow(page, 'Enter code').locator('input').fill(QA_CODE);
+  await fieldRow(page, 'Enter code').locator('input').fill(SUBMIT_CODE);
   await page.getByRole('button', { name: /verify/i }).click();
 
   // Step 2: track details
@@ -44,20 +32,12 @@ test('user can submit a track with audio file and agreement', async ({ page }) =
   await genreOption.waitFor();
   await genreOption.click();
 
-  // "Sunonation" is used over other stations on mixpla.io because they can
-  // hit their free-plan submission cap in that environment and reject the
-  // upload. Fall back to whatever station is first when it isn't seeded
-  // (e.g. a local dev DB).
+  // Submit to the Sunonation station.
   const stationRow = fieldRow(page, 'Station');
   await stationRow.locator('.n-select').click();
   const stationOptions = page.locator('.n-base-select-option');
   await stationOptions.first().waitFor();
-  const preferredStation = stationOptions.filter({ hasText: 'Sunonation' });
-  if (await preferredStation.count() > 0) {
-    await preferredStation.first().click();
-  } else {
-    await stationOptions.first().click();
-  }
+  await stationOptions.filter({ hasText: STATION }).first().click();
 
   await page.locator('input[type="file"]').setInputFiles('fixtures/test-audio.wav');
 
@@ -70,11 +50,10 @@ test('user can submit a track with audio file and agreement', async ({ page }) =
   await page.getByRole('button', { name: 'Submit Track', exact: true }).click();
   await uploadPromise;
 
-  submittedFragmentId = await waitForSoundFragmentIdByTitle(TEST_TRACK_TITLE);
-
   // The upload chunk response resolves before the frontend finishes
   // processing and switching to the success view, so give it more room
-  // than the default 5s timeout.
+  // than the default 5s timeout. The submitted track is cleaned up
+  // server-side, so the test does not touch the database directly.
   await expect(page.getByText('Thank you!')).toBeVisible({ timeout: 20000 });
   await expect(page.getByText('Your track has been submitted successfully.')).toBeVisible();
 });
