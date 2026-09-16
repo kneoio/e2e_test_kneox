@@ -145,13 +145,17 @@ export async function changePlan(page: Page, planName: string) {
   }
 }
 
-// Complete a Stripe test-mode Checkout with a standard test card. The "Save my
+// Stripe test card that is always declined by the issuer (generic decline).
+export const STRIPE_DECLINE_CARD = '4000000000000002';
+const STRIPE_TEST_CARD = '4242424242424242';
+
+// Fill the Stripe test-mode Checkout card form and submit. The "Save my
 // information" (Link) box is unchecked because leaving it on makes the phone
 // number a required field and blocks submission.
-export async function completeStripeCheckout(page: Page) {
+async function fillStripeCardAndSubmit(page: Page, cardNumber: string) {
   await page.waitForSelector('#cardNumber', { timeout: 20000 });
   await page.waitForTimeout(1000);
-  await page.locator('#cardNumber').pressSequentially('4242424242424242', { delay: 20 });
+  await page.locator('#cardNumber').pressSequentially(cardNumber, { delay: 20 });
   await page.locator('#cardExpiry').pressSequentially('1234', { delay: 20 });
   await page.locator('#cardCvc').pressSequentially('123', { delay: 20 });
   await page.locator('#billingName').fill('QA Test');
@@ -165,6 +169,29 @@ export async function completeStripeCheckout(page: Page) {
   }
 
   await page.locator('button[type="submit"], .SubmitButton').first().click();
+}
+
+// Complete a Stripe test-mode Checkout with a card that succeeds, then wait for
+// the redirect back to the app.
+export async function completeStripeCheckout(page: Page) {
+  await fillStripeCardAndSubmit(page, STRIPE_TEST_CARD);
   await page.waitForURL(/mixpla\.io/, { timeout: 60000 });
   await page.waitForLoadState('domcontentloaded');
+}
+
+// Click a tier's Upgrade button and pay with a declined card. Asserts Stripe
+// surfaces a decline error and stays on the checkout page (no redirect back,
+// so the plan must not change).
+export async function attemptUpgradeWithDeclinedCard(
+  page: Page,
+  planName: string,
+  cardNumber: string = STRIPE_DECLINE_CARD,
+) {
+  await planCardAction(page, planName).click();
+  await page.waitForURL(/checkout\.stripe\.com/, { timeout: 20000 });
+  await fillStripeCardAndSubmit(page, cardNumber);
+  await expect(
+    page.getByText(/declined|could ?n.?t|could not|insufficient|try a different|invalid/i).first(),
+  ).toBeVisible({ timeout: 30000 });
+  await expect(page).toHaveURL(/checkout\.stripe\.com/);
 }

@@ -1,5 +1,12 @@
 import { test, expect, type BrowserContext, type Page } from '@playwright/test';
-import { login, openPlans, changePlan, getSubscription, planBadge } from './support/mixdeck';
+import {
+  login,
+  openPlans,
+  changePlan,
+  getSubscription,
+  planBadge,
+  attemptUpgradeWithDeclinedCard,
+} from './support/mixdeck';
 
 const MIXDECK_TEST_USER = process.env.MIXDECK_TEST_USER || 'qa-test@mixpla.io';
 const MIXDECK_TEST_OTP = process.env.MIXDECK_TEST_OTP || '424242';
@@ -45,6 +52,20 @@ test.describe('subscription lifecycle: free -> plus -> pro -> plus -> free', () 
     expect(sub.subscriptionType).toBe('free');
     expect(sub.paid).toBe(false);
     expect(await planBadge(page, MIXDECK_TEST_USER)).toBe('FREE');
+  });
+
+  test('a declined card does not upgrade the plan', async () => {
+    await openPlans(page, MIXDECK_TEST_USER);
+    await attemptUpgradeWithDeclinedCard(page, 'Plus');
+
+    // Return to the app and confirm the account is still on the free plan:
+    // a failed payment must never grant a paid subscription.
+    await page.goto('/broadcaster-welcome');
+    await page.waitForLoadState('domcontentloaded');
+    await expect
+      .poll(async () => (await getSubscription(page)).subscriptionType, { timeout: 20_000 })
+      .toBe('free');
+    expect((await getSubscription(page)).paid).toBe(false);
   });
 
   test('upgrades free -> plus via Stripe checkout', async () => {
