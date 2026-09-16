@@ -4,7 +4,10 @@ Black-box Playwright E2E tests for Mixpla track submission flow.
 
 ## Purpose
 
-This project provides end-to-end testing for the Mixpla track submission page (`/submission`). It treats the Mixpla site as a pure black box over HTTP and simulates a real user submitting a track through the 3-step wizard (email verification, track details + upload, success).
+This project provides end-to-end testing for Mixpla. It treats the Mixpla site as a pure black box over HTTP and covers:
+
+- **Track submission** (`/submission`): a real user submitting a track through the 3-step wizard (email verification, track details + upload, success).
+- **Mixdeck login/language/logout**: signing in via the passwordless email one-time-code flow, changing the interface language, and logging out.
 
 ## Prerequisites
 
@@ -24,14 +27,14 @@ npm install
 npx playwright install
 ```
 
-3. Set environment variables (see `.env.example`). The submission flow
-   authenticates the submitter with an email + one-time code, read from
-   `MIXDECK_USER` / `MIXDECK_PWD` (the QA OTP bypass pair works without
-   sending a real email):
+3. Set environment variables (see `.env.example`). Both tests authenticate
+   with an email + one-time code, read from `MIXDECK_TEST_USER` /
+   `MIXDECK_TEST_OTP` (the QA OTP bypass pair works without sending a real
+   email):
 ```bash
 export BASE_URL=https://mixpla.io   # or another environment URL
-export MIXDECK_USER=qa-test@mixpla.io
-export MIXDECK_PWD=424242
+export MIXDECK_TEST_USER=qa-test@mixpla.io
+export MIXDECK_TEST_OTP=424242
 ```
 
 4. Add a test audio file:
@@ -52,7 +55,7 @@ npx playwright test --ui
 
 ## Test Coverage
 
-The test `user can submit a track with audio file and agreement` verifies:
+`user can submit a track with audio file and agreement` verifies:
 - Email input and "Send Code" functionality
 - Confirmation code entry (using the QA OTP bypass code)
 - Artist name, genre, and station selection
@@ -62,6 +65,15 @@ The test `user can submit a track with audio file and agreement` verifies:
 
 The test submits to the `Sunonation` station and does not access the database
 directly; submitted test tracks are cleaned up server-side.
+
+`user can log in, change interface language, and log out` verifies:
+- Passwordless email + one-time-code sign in to Mixdeck
+- Opening the Profile view from the header user menu
+- Switching the interface language to Deutsch and back to English
+- Logging out via the header user menu
+
+Menu items are matched by position (Profile first, Logout last) so the flow
+survives the interface being translated mid-test.
 
 ## Configuration
 

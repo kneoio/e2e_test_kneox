@@ -1,11 +1,11 @@
 import { test, expect, type Locator, type Page } from '@playwright/test';
 
 // The submission flow authenticates the submitter with an email + one-time
-// code. These are taken from MIXDECK_USER / MIXDECK_PWD (the QA bypass pair
-// exposed via OtpService.TEST_BYPASS_EMAIL / TEST_BYPASS_CODE in datanest),
-// falling back to the documented public bypass values when unset.
-const SUBMIT_EMAIL = process.env.MIXDECK_USER || 'qa-test@mixpla.io';
-const SUBMIT_CODE = process.env.MIXDECK_PWD || '424242';
+// code. These are taken from MIXDECK_TEST_USER / MIXDECK_TEST_OTP (the QA
+// bypass pair exposed via OtpService.TEST_BYPASS_EMAIL / TEST_BYPASS_CODE in
+// datanest), falling back to the documented public bypass values when unset.
+const SUBMIT_EMAIL = process.env.MIXDECK_TEST_USER || 'qa-test@mixpla.io';
+const SUBMIT_CODE = process.env.MIXDECK_TEST_OTP || '424242';
 const STATION = 'Sunonation';
 
 function fieldRow(page: Page, labelText: string): Locator {
