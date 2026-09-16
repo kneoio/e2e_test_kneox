@@ -9,6 +9,8 @@ import {
   abandonCheckout,
   applyPromoCode,
   attemptUpgradeWith3DS,
+  installVideoBanner,
+  label,
 } from './support/mixdeck';
 
 const MIXDECK_TEST_USER = process.env.MIXDECK_TEST_USER || 'qa-test@mixpla.io';
@@ -39,6 +41,7 @@ test.describe('subscription lifecycle: free -> plus -> pro -> plus -> free', () 
       recordVideo: { dir: testInfo.outputDir, size: { width: 1920, height: 1080 } },
     });
     page = await context.newPage();
+    await installVideoBanner(page);
     await login(page, MIXDECK_TEST_USER, MIXDECK_TEST_OTP);
     // Establish a known baseline regardless of the account's prior state.
     await resetToFree();
@@ -51,6 +54,7 @@ test.describe('subscription lifecycle: free -> plus -> pro -> plus -> free', () 
   });
 
   test('starts on the free plan', async () => {
+    await label(page, 'Baseline: Free plan');
     const sub = await getSubscription(page);
     expect(sub.subscriptionType).toBe('free');
     expect(sub.paid).toBe(false);
@@ -58,6 +62,7 @@ test.describe('subscription lifecycle: free -> plus -> pro -> plus -> free', () 
   });
 
   test('a declined card does not upgrade the plan', async () => {
+    await label(page, 'Declined card -> stays Free');
     await openPlans(page, MIXDECK_TEST_USER);
     await attemptUpgradeWithDeclinedCard(page, 'Plus');
 
@@ -72,6 +77,7 @@ test.describe('subscription lifecycle: free -> plus -> pro -> plus -> free', () 
   });
 
   test('abandoning checkout does not upgrade the plan', async () => {
+    await label(page, 'Abandoned checkout -> stays Free');
     await openPlans(page, MIXDECK_TEST_USER);
     await abandonCheckout(page, 'Plus');
     await expect
@@ -81,6 +87,7 @@ test.describe('subscription lifecycle: free -> plus -> pro -> plus -> free', () 
   });
 
   test('an invalid promo code is rejected', async () => {
+    await label(page, 'Invalid promo code -> rejected');
     await openPlans(page, MIXDECK_TEST_USER);
     await applyPromoCode(page, 'Plus', 'INVALIDCODE123');
     await expect(page.getByText(/invalid or expired promo code/i)).toBeVisible({ timeout: 15_000 });
@@ -88,6 +95,7 @@ test.describe('subscription lifecycle: free -> plus -> pro -> plus -> free', () 
   });
 
   test('failed 3DS authentication does not upgrade the plan', async () => {
+    await label(page, 'Failed 3DS (SCA) -> stays Free');
     await openPlans(page, MIXDECK_TEST_USER);
     await attemptUpgradeWith3DS(page, 'Plus', 'fail');
 
@@ -100,6 +108,7 @@ test.describe('subscription lifecycle: free -> plus -> pro -> plus -> free', () 
   });
 
   test('upgrades free -> plus via Stripe checkout', async () => {
+    await label(page, 'Upgrade Free -> Plus (Stripe checkout)');
     await openPlans(page, MIXDECK_TEST_USER);
     await changePlan(page, 'Plus');
     await expect
@@ -111,6 +120,7 @@ test.describe('subscription lifecycle: free -> plus -> pro -> plus -> free', () 
   });
 
   test('upgrades plus -> pro directly (card on file)', async () => {
+    await label(page, 'Upgrade Plus -> Pro (card on file)');
     await openPlans(page, MIXDECK_TEST_USER);
     await changePlan(page, 'Pro');
     await expect
@@ -122,6 +132,7 @@ test.describe('subscription lifecycle: free -> plus -> pro -> plus -> free', () 
   });
 
   test('downgrades pro -> plus', async () => {
+    await label(page, 'Downgrade Pro -> Plus');
     await openPlans(page, MIXDECK_TEST_USER);
     await changePlan(page, 'Plus');
     await expect
@@ -132,6 +143,7 @@ test.describe('subscription lifecycle: free -> plus -> pro -> plus -> free', () 
   });
 
   test('downgrades plus -> free', async () => {
+    await label(page, 'Downgrade Plus -> Free');
     await openPlans(page, MIXDECK_TEST_USER);
     await changePlan(page, 'Free');
     await expect
@@ -142,6 +154,7 @@ test.describe('subscription lifecycle: free -> plus -> pro -> plus -> free', () 
   });
 
   test('upgrades free -> plus with 3DS authentication (SCA)', async () => {
+    await label(page, 'Upgrade Free -> Plus (3DS / SCA)');
     await openPlans(page, MIXDECK_TEST_USER);
     await attemptUpgradeWith3DS(page, 'Plus', 'complete');
     await expect

@@ -70,6 +70,49 @@ export async function logout(page: Page, email: string) {
   await expect(userMenuTrigger(page, email)).toBeHidden({ timeout: 10000 });
 }
 
+// --- Video step-title overlay ---------------------------------------------
+
+// Install a non-interactive banner that shows the current test step in the
+// recorded video. It re-renders on every page load (reading window.name, which
+// persists across navigations, including the Stripe checkout round-trip) and is
+// only shown on the app's own pages.
+export async function installVideoBanner(page: Page) {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __e2eRender?: () => void };
+    w.__e2eRender = () => {
+      if (!/mixpla/.test(location.hostname)) return;
+      const raw = window.name || '';
+      if (raw.indexOf('E2E:') !== 0) return;
+      const text = raw.slice(4).trim();
+      let el = document.getElementById('__e2e_banner__');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = '__e2e_banner__';
+        el.style.cssText =
+          'position:fixed;left:0;right:0;bottom:0;z-index:2147483647;background:#7c3aed;color:#fff;' +
+          'font:600 18px/44px system-ui,-apple-system,sans-serif;text-align:center;height:44px;' +
+          'pointer-events:none;letter-spacing:.3px;';
+        (document.body || document.documentElement).appendChild(el);
+      }
+      el.textContent = text;
+    };
+    document.addEventListener('DOMContentLoaded', () => w.__e2eRender && w.__e2eRender());
+    setInterval(() => w.__e2eRender && w.__e2eRender(), 500);
+  });
+}
+
+// Set the current step title shown by the video banner.
+export async function label(page: Page, text: string) {
+  await page
+    .evaluate((t) => {
+      window.name = 'E2E: ' + t;
+      (window as unknown as { __e2eRender?: () => void }).__e2eRender?.();
+    }, text)
+    .catch(() => {
+      /* banner is best-effort */
+    });
+}
+
 // --- Subscription / plans helpers -----------------------------------------
 
 export interface Subscription {
