@@ -6,6 +6,9 @@ import {
   getSubscription,
   planBadge,
   attemptUpgradeWithDeclinedCard,
+  abandonCheckout,
+  applyPromoCode,
+  attemptUpgradeWith3DS,
 } from './support/mixdeck';
 
 const MIXDECK_TEST_USER = process.env.MIXDECK_TEST_USER || 'qa-test@mixpla.io';
@@ -68,6 +71,34 @@ test.describe('subscription lifecycle: free -> plus -> pro -> plus -> free', () 
     expect((await getSubscription(page)).paid).toBe(false);
   });
 
+  test('abandoning checkout does not upgrade the plan', async () => {
+    await openPlans(page, MIXDECK_TEST_USER);
+    await abandonCheckout(page, 'Plus');
+    await expect
+      .poll(async () => (await getSubscription(page)).subscriptionType, { timeout: 20_000 })
+      .toBe('free');
+    expect((await getSubscription(page)).paid).toBe(false);
+  });
+
+  test('an invalid promo code is rejected', async () => {
+    await openPlans(page, MIXDECK_TEST_USER);
+    await applyPromoCode(page, 'Plus', 'INVALIDCODE123');
+    await expect(page.getByText(/invalid or expired promo code/i)).toBeVisible({ timeout: 15_000 });
+    expect((await getSubscription(page)).subscriptionType).toBe('free');
+  });
+
+  test('failed 3DS authentication does not upgrade the plan', async () => {
+    await openPlans(page, MIXDECK_TEST_USER);
+    await attemptUpgradeWith3DS(page, 'Plus', 'fail');
+
+    await page.goto('/broadcaster-welcome');
+    await page.waitForLoadState('domcontentloaded');
+    await expect
+      .poll(async () => (await getSubscription(page)).subscriptionType, { timeout: 20_000 })
+      .toBe('free');
+    expect((await getSubscription(page)).paid).toBe(false);
+  });
+
   test('upgrades free -> plus via Stripe checkout', async () => {
     await openPlans(page, MIXDECK_TEST_USER);
     await changePlan(page, 'Plus');
@@ -108,5 +139,14 @@ test.describe('subscription lifecycle: free -> plus -> pro -> plus -> free', () 
       .toBe('free');
     const sub = await getSubscription(page);
     expect(sub.paid).toBe(false);
+  });
+
+  test('upgrades free -> plus with 3DS authentication (SCA)', async () => {
+    await openPlans(page, MIXDECK_TEST_USER);
+    await attemptUpgradeWith3DS(page, 'Plus', 'complete');
+    await expect
+      .poll(async () => (await getSubscription(page)).subscriptionType, { timeout: 30_000 })
+      .toBe('mixpla_plus');
+    expect((await getSubscription(page)).paid).toBe(true);
   });
 });

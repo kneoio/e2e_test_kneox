@@ -195,3 +195,61 @@ export async function attemptUpgradeWithDeclinedCard(
   ).toBeVisible({ timeout: 30000 });
   await expect(page).toHaveURL(/checkout\.stripe\.com/);
 }
+
+// Start a checkout for `planName` then leave without paying, simulating a user
+// abandoning the hosted checkout.
+export async function abandonCheckout(page: Page, planName: string) {
+  await planCardAction(page, planName).click();
+  await page.waitForURL(/checkout\.stripe\.com/, { timeout: 20000 });
+  await page.goto('/broadcaster-welcome');
+  await page.waitForLoadState('domcontentloaded');
+}
+
+// Enter and apply a promo code on a plan card.
+export async function applyPromoCode(page: Page, planName: string, code: string) {
+  const card = planCard(page, planName);
+  await card.getByPlaceholder('Promo code').fill(code);
+  await card.getByRole('button', { name: /^Apply$/ }).click();
+}
+
+// Stripe test card that forces a 3D Secure 2 (SCA) authentication challenge.
+export const STRIPE_3DS_CARD = '4000002500003155';
+
+// The 3DS challenge renders in a nested test-mode ACS frame with Complete /
+// Fail buttons. Wait for that frame AND its buttons to render (the frame can
+// take a while to attach).
+async function waitForAcsButton(page: Page, name: RegExp, timeout = 45000): Promise<Locator> {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    const frame = page.frames().find((f) => /testmode-acs\.stripe\.com/.test(f.url()));
+    if (frame) {
+      const button = frame.getByRole('button', { name });
+      if (await button.count().catch(() => 0)) return button.first();
+    }
+    await page.waitForTimeout(500);
+  }
+  throw new Error('3DS challenge (ACS) button did not appear');
+}
+
+// Click a tier's Upgrade button, pay with the 3DS card, and either complete or
+// fail the authentication challenge. On 'complete' the app is reached again
+// (subscription active); on 'fail' the challenge is rejected and the plan must
+// remain unchanged (verified by the caller).
+export async function attemptUpgradeWith3DS(page: Page, planName: string, action: 'complete' | 'fail') {
+  await planCardAction(page, planName).click();
+  await page.waitForURL(/checkout\.stripe\.com/, { timeout: 25000 });
+  await fillStripeCardAndSubmit(page, STRIPE_3DS_CARD);
+
+  const button = await waitForAcsButton(page, action === 'complete' ? /complete/i : /fail/i);
+  await button.waitFor({ state: 'visible', timeout: 15000 });
+  await button.click();
+
+  if (action === 'complete') {
+    await page.waitForURL(/mixpla\.io/, { timeout: 60000 });
+    await page.waitForLoadState('domcontentloaded');
+  } else {
+    // Give Stripe a moment to reject the authentication; the caller asserts
+    // the plan is unchanged.
+    await page.waitForTimeout(3000);
+  }
+}
