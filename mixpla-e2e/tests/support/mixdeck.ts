@@ -69,3 +69,102 @@ export async function logout(page: Page, email: string) {
   await page.locator('.n-dropdown-option').last().click();
   await expect(userMenuTrigger(page, email)).toBeHidden({ timeout: 10000 });
 }
+
+// --- Subscription / plans helpers -----------------------------------------
+
+export interface Subscription {
+  subscriptionType: string; // "free" | "mixpla_plus" | "mixpla_pro"
+  paid: boolean;
+  subscriptionStatus: string;
+  [key: string]: unknown;
+}
+
+// Read the current subscription straight from the nivaro API, reusing the
+// app's bearer token from localStorage. This is a stable assertion source
+// that does not depend on the (translatable) UI.
+export async function getSubscription(page: Page): Promise<Subscription> {
+  return await page.evaluate(async () => {
+    let token: string | null = null;
+    for (const key of Object.keys(localStorage)) {
+      const match = (localStorage.getItem(key) || '').match(/eyJ[\w-]+\.[\w-]+\.[\w-]+/);
+      if (match) {
+        token = match[0];
+        break;
+      }
+    }
+    const res = await fetch('/nivaro/subscriptions/current?sync=true', {
+      headers: token ? { authorization: 'Bearer ' + token } : {},
+    });
+    return (await res.json()) as Subscription;
+  });
+}
+
+// The header user-menu button label ends with the plan badge (FREE/PLUS/PRO).
+export async function planBadge(page: Page, email: string): Promise<string> {
+  const text = await userMenuTrigger(page, email).first().innerText();
+  return (text.match(/\b(FREE|PLUS|PRO)\b/i)?.[1] || '').toUpperCase();
+}
+
+// Open the Plans & Pricing view (user menu -> Profile -> Manage Plan). Safe to
+// call from any logged-in page since the header persists across views.
+export async function openPlans(page: Page, email: string) {
+  await userMenuTrigger(page, email).click();
+  await page.locator('.n-dropdown-option').first().click();
+  await page.getByRole('button', { name: /manage plan|plan verwalten|manage subscription/i }).first().click();
+  // The plan cards always render regardless of the current tier; wait for the
+  // card itself (its action button varies: Upgrade/Downgrade/Current plan).
+  await expect(planCard(page, 'Pro')).toBeVisible({ timeout: 15000 });
+}
+
+// A plan card is an `.n-card-content` block containing the exact tier name.
+function planCard(page: Page, planName: string): Locator {
+  return page.locator('.n-card-content').filter({ has: page.getByText(planName, { exact: true }) });
+}
+
+// The card's primary action button: Upgrade or Downgrade (never the promo
+// "Apply" or the disabled "Current plan").
+function planCardAction(page: Page, planName: string): Locator {
+  return planCard(page, planName).getByRole('button', { name: /^(Upgrade|Downgrade)$/ });
+}
+
+// Switch to `planName` by clicking its Upgrade/Downgrade button. Upgrading from
+// an unpaid plan redirects to Stripe (test-mode) Checkout, which is completed
+// here; changes between paid plans and downgrades apply directly with no
+// checkout.
+export async function changePlan(page: Page, planName: string) {
+  await planCardAction(page, planName).click();
+  const wentToStripe = await page
+    .waitForURL(/checkout\.stripe\.com/, { timeout: 8000 })
+    .then(() => true)
+    .catch(() => false);
+  if (wentToStripe) {
+    await completeStripeCheckout(page);
+  } else {
+    // Direct PATCH/DELETE; give the app a moment to apply and re-render.
+    await page.waitForTimeout(2000);
+  }
+}
+
+// Complete a Stripe test-mode Checkout with a standard test card. The "Save my
+// information" (Link) box is unchecked because leaving it on makes the phone
+// number a required field and blocks submission.
+export async function completeStripeCheckout(page: Page) {
+  await page.waitForSelector('#cardNumber', { timeout: 20000 });
+  await page.waitForTimeout(1000);
+  await page.locator('#cardNumber').pressSequentially('4242424242424242', { delay: 20 });
+  await page.locator('#cardExpiry').pressSequentially('1234', { delay: 20 });
+  await page.locator('#cardCvc').pressSequentially('123', { delay: 20 });
+  await page.locator('#billingName').fill('QA Test');
+  await page.selectOption('#billingCountry', { label: 'United States' }).catch(() => {});
+  const postal = page.locator('#billingPostalCode');
+  if (await postal.count()) await postal.fill('10001').catch(() => {});
+
+  const link = page.locator('#enableStripePass');
+  if ((await link.count()) && (await link.isChecked().catch(() => false))) {
+    await link.uncheck({ force: true }).catch(() => {});
+  }
+
+  await page.locator('button[type="submit"], .SubmitButton').first().click();
+  await page.waitForURL(/mixpla\.io/, { timeout: 60000 });
+  await page.waitForLoadState('domcontentloaded');
+}
